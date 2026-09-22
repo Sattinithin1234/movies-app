@@ -1,51 +1,19 @@
 import { useEffect, useState } from "react"
-
 import { getMovieDetails } from "../services/movieApi"
 
-
 function MovieDetails(props) {
-
   const movie = props.movie
 
-  console.log("SELECTED MOVIE:", movie)
-  console.log("RELEASE DATE FROM MOVIE:", movie.releaseDate)
-
-
-  // =========================
-  // STATES
-  // =========================
-
-  const [details, setDetails] =
-    useState(movie)
-
-  const [loading, setLoading] =
-    useState(true)
-
-
-  // =========================
-  // GET FULL MOVIE DETAILS
-  // =========================
+  const [details, setDetails] = useState(movie)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-
     async function loadDetails() {
-
       try {
-
         setLoading(true)
 
         const movieDetails =
           await getMovieDetails(movie.id)
-
-        console.log(
-          "FULL MOVIE DETAILS:",
-          movieDetails
-        )
-
-        console.log(
-          "RELEASE DATE FROM API:",
-          movieDetails.releaseDate
-        )
 
         setDetails({
           ...movie,
@@ -53,7 +21,6 @@ function MovieDetails(props) {
         })
 
       } catch (error) {
-
         console.error(
           "Movie Details Error:",
           error
@@ -62,114 +29,50 @@ function MovieDetails(props) {
         setDetails(movie)
 
       } finally {
-
         setLoading(false)
-
       }
-
     }
 
     loadDetails()
-
   }, [movie])
 
-
-  // =========================
-  // WATCH NOW
-  // =========================
-
   function handleWatchNow() {
-
-    const searchQuery =
-      `${details.title} official trailer`
-
-    const youtubeUrl =
-      `https://www.youtube.com/results?search_query=${encodeURIComponent(
-        searchQuery
-      )}`
-
-    window.open(
-      youtubeUrl,
-      "_blank"
-    )
+    props.onWatchNow(details)
   }
-
-
-  // =========================
-  // MY LIST
-  // =========================
 
   function handleMyList() {
-
     if (props.isInMyList) {
-
-      props.onRemoveFromMyList(
-        details.id
-      )
-
+      props.onRemoveFromMyList(details.id)
     } else {
-
-      props.onAddToMyList(
-        details
-      )
-
+      props.onAddToMyList(details)
     }
-
   }
 
-
-  // =========================
-  // FORMAT RUNTIME
-  // =========================
-
   function formatRuntime(minutes) {
-
     if (!minutes) {
       return null
     }
 
-    const hours =
-      Math.floor(minutes / 60)
-
-    const remainingMinutes =
-      minutes % 60
-
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
 
     if (hours === 0) {
-
       return `${remainingMinutes}m`
-
     }
-
 
     if (remainingMinutes === 0) {
-
       return `${hours}h`
-
     }
-
 
     return `${hours}h ${remainingMinutes}m`
-
   }
 
-
-  // =========================
-  // FORMAT RELEASE DATE
-  // =========================
-
   function formatDate(date) {
-
     if (!date) {
-
       return "Not available"
-
     }
 
-
-    return new Date(
-      date
-    ).toLocaleDateString(
+    return new Date(date).toLocaleDateString(
       "en-US",
       {
         month: "long",
@@ -177,62 +80,76 @@ function MovieDetails(props) {
         year: "numeric"
       }
     )
-
   }
 
+  const posterUrl =
+    details.poster_path
+      ? `https://image.tmdb.org/t/p/w500${details.poster_path}`
+      : ""
+
+  const year =
+    details.release_date
+      ? new Date(
+          details.release_date
+        ).getFullYear()
+      : "N/A"
 
   return (
-
     <div className="movie-details">
+
+      {/* BACK BUTTON */}
+
+      <button
+        className="details-back-button"
+        onClick={props.onClose}
+      >
+        ← Back
+      </button>
 
       <div className="details-content">
 
-
-        {/* =========================
-            MOVIE POSTER
-        ========================= */}
+        {/* POSTER */}
 
         <div className="details-poster">
 
-          <img
-            src={details.image}
-            alt={details.title}
-          />
+          {posterUrl ? (
+            <img
+              src={posterUrl}
+              alt={details.title}
+            />
+          ) : (
+            <div className="no-poster">
+              No Image
+            </div>
+          )}
 
         </div>
 
-
-        {/* =========================
-            MOVIE INFORMATION
-        ========================= */}
+        {/* DETAILS */}
 
         <div className="details-info">
-
-
-          {/* TITLE */}
 
           <h1>
             {details.title}
           </h1>
 
-
-          {/* RATING + YEAR + RUNTIME */}
+          {/* RATING / YEAR / RUNTIME */}
 
           <p className="details-rating">
 
-            ⭐ {details.rating}
+            ⭐{" "}
+            {details.vote_average
+              ? details.vote_average.toFixed(1)
+              : "N/A"}
 
             <span>
               {" • "}
             </span>
 
-            {details.year}
-
+            {year}
 
             {details.runtime && (
-
               <>
-
                 <span>
                   {" • "}
                 </span>
@@ -240,17 +157,12 @@ function MovieDetails(props) {
                 {formatRuntime(
                   details.runtime
                 )}
-
               </>
-
             )}
 
           </p>
 
-
-          {/* =========================
-              RELEASE DATE
-          ========================= */}
+          {/* RELEASE DATE */}
 
           <p className="release-date">
 
@@ -259,108 +171,77 @@ function MovieDetails(props) {
             {loading
               ? "Loading..."
               : formatDate(
-                  details.releaseDate
+                  details.release_date
                 )}
 
           </p>
 
-
-          {/* =========================
-              LOADING MESSAGE
-          ========================= */}
+          {/* LOADING */}
 
           {loading && (
-
             <p>
               Loading movie details...
             </p>
-
           )}
 
-
-          {/* =========================
-              GENRES
-          ========================= */}
+          {/* GENRES */}
 
           {!loading &&
             details.genres &&
             details.genres.length > 0 && (
 
-            <div className="movie-genres">
+              <div className="movie-genres">
 
-              {details.genres.map(
-                (genre) => (
+                {details.genres.map(
+                  (genre) => (
 
-                  <span
-                    className="genre-tag"
-                    key={genre}
-                  >
-                    {genre}
-                  </span>
+                    <span
+                      className="genre-tag"
+                      key={genre.id}
+                    >
+                      {genre.name}
+                    </span>
 
-                )
-              )}
+                  )
+                )}
 
-            </div>
+              </div>
 
-          )}
+            )}
 
-
-          {/* =========================
-              DESCRIPTION
-          ========================= */}
+          {/* DESCRIPTION */}
 
           <p>
-            {details.description}
+            {details.overview ||
+              "No description available."}
           </p>
 
-
-          {/* =========================
-              BUTTONS
-          ========================= */}
+          {/* BUTTONS */}
 
           <div className="details-buttons">
-
-
-            {/* WATCH NOW */}
 
             <button
               className="watch-button"
               onClick={handleWatchNow}
             >
-
               ▶ Watch Now
-
             </button>
-
-
-            {/* MY LIST */}
 
             <button
               className="list-button"
               onClick={handleMyList}
             >
-
               {props.isInMyList
                 ? "✓ Added"
                 : "+ My List"}
-
             </button>
-
-
-            {/* CLOSE */}
 
             <button
               className="close-button"
-              onClick={
-                props.onClose
-              }
+              onClick={props.onClose}
             >
-
               ✕ Close
-
             </button>
-
 
           </div>
 
@@ -369,10 +250,7 @@ function MovieDetails(props) {
       </div>
 
     </div>
-
   )
-
 }
-
 
 export default MovieDetails

@@ -1,135 +1,86 @@
-function Navbar(props) {
+import { useNavigate } from "react-router-dom"
+import "./Navbar.css"
 
-  function handleNavigation(event, sectionId) {
+function Navbar({ searchText, setSearchText }) {
 
-    event.preventDefault()
+  const navigate = useNavigate()
 
-    // Clear search first
-    props.onSearch("")
-
-    // Wait for sections to appear
-    setTimeout(() => {
-
-      const section =
-        document.getElementById(sectionId)
-
-      if (section) {
-
-        section.scrollIntoView({
-          behavior: "smooth"
-        })
-
-      }
-
-    }, 100)
+  function handleLogout() {
+    localStorage.removeItem("isLoggedIn")
+    navigate("/login")
   }
 
+  function handleMyList() {
+    const element = document.getElementById("my-list-section")
 
-  function handleSearch(event) {
-
-    props.onSearch(event.target.value)
-
+    if (element) {
+      element.scrollIntoView({
+        behavior: "smooth"
+      })
+    }
   }
-
 
   return (
-
     <nav className="navbar">
 
       {/* LOGO */}
 
-      <h1 className="logo">
-        NETFLIX
-      </h1>
-
-
-      {/* NAVIGATION LINKS */}
-
-      <div className="nav-links">
-
-        <a
-          href="#home"
-          onClick={(event) =>
-            handleNavigation(
-              event,
-              "home"
-            )
-          }
-        >
-          Home
-        </a>
-
-
-        <a
-          href="#movies"
-          onClick={(event) =>
-            handleNavigation(
-              event,
-              "movies"
-            )
-          }
-        >
-          Movies
-        </a>
-
-
-        <a
-          href="#tv-shows"
-          onClick={(event) =>
-            handleNavigation(
-              event,
-              "tv-shows"
-            )
-          }
-        >
-          TV Shows
-        </a>
-
-
-        <a
-          href="#my-list"
-          onClick={(event) =>
-            handleNavigation(
-              event,
-              "my-list"
-            )
-          }
-        >
-          My List
-        </a>
-
-      </div>
+      <h2
+        className="navbar-logo"
+        onClick={() => navigate("/")}
+      >
+        Movies App
+      </h2>
 
 
       {/* SEARCH */}
 
-      <div className="search-box">
+      <div className="navbar-search">
 
         <input
           type="text"
-          placeholder="Search movies and TV shows..."
-          value={props.searchText}
-          onChange={handleSearch}
+          placeholder="Search movies or TV shows..."
+          value={searchText}
+          onChange={(event) =>
+            setSearchText(event.target.value)
+          }
         />
 
+      </div>
+
+
+      {/* NAVIGATION */}
+
+      <div className="navbar-links">
 
         <button
-          type="button"
-          onClick={() => {
-            document
-              .querySelector(".search-box input")
-              ?.focus()
-          }}
+          onClick={() => navigate("/")}
         >
-          🔍
+          Home
+        </button>
+
+        <button
+          onClick={handleMyList}
+        >
+          My List
+        </button>
+
+        <button
+          onClick={() => navigate("/account")}
+        >
+          Account
+        </button>
+
+        <button
+          onClick={handleLogout}
+        >
+          Logout
         </button>
 
       </div>
 
     </nav>
-
   )
 }
-
 
 export default Navbar

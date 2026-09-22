@@ -1,96 +1,74 @@
-
 function TVShowRow(props) {
-
   return (
     <section>
-
-      {/* =========================
-          TV SHOWS TITLE
-          ========================= */}
-
+      {/* TV SHOWS TITLE */}
       <h2>
         TV Shows
       </h2>
 
-
-      {/* =========================
-          TV SHOW CONTAINER
-          ========================= */}
-
+      {/* TV SHOW CONTAINER */}
       <div className="movie-container">
 
-        {props.shows.map((show) => (
+        {props.shows.map((show) => {
 
-          <div
-            className="movie-card"
-            key={show.id}
-            onClick={() => props.onShowClick(show)}
-          >
+          const imageUrl = show.poster_path
+            ? `https://image.tmdb.org/t/p/w500${show.poster_path}`
+            : "https://via.placeholder.com/500x750?text=No+Image"
 
-            {/* =========================
-                TV SHOW IMAGE
-                ========================= */}
+          return (
+            <div
+              className="movie-card"
+              key={show.id}
+              onClick={() => props.onShowClick(show)}
+            >
 
-            <div className="movie-image-container">
+              {/* TV SHOW IMAGE */}
+              <div className="movie-image-container">
 
-              <img
-                src={show.image}
-                alt={show.title}
-              />
+                <img
+                  src={imageUrl}
+                  alt={show.name}
+                />
 
+                {/* HOVER OVERLAY */}
+                <div className="movie-overlay">
 
-              {/* =========================
-                  HOVER OVERLAY
-                  ========================= */}
+                  <button
+                    className="play-button"
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    ▶
+                  </button>
 
-              <div className="movie-overlay">
+                </div>
 
-                <button
-                  className="play-button"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  ▶
-                </button>
+              </div>
+
+              {/* TV SHOW TITLE */}
+              <h3>
+                {show.name}
+              </h3>
+
+              {/* TV SHOW INFORMATION */}
+              <div className="movie-info">
+
+                <span>
+                  ⭐ {show.vote_average?.toFixed(1) || "N/A"}
+                </span>
+
+                <span>
+                  TV
+                </span>
 
               </div>
 
             </div>
-
-
-            {/* =========================
-                TV SHOW TITLE
-                ========================= */}
-
-            <h3>
-              {show.title}
-            </h3>
-
-
-            {/* =========================
-                TV SHOW INFORMATION
-                ========================= */}
-
-            <div className="movie-info">
-
-              <span>
-                ⭐ {show.rating}
-              </span>
-
-              <span>
-                TV
-              </span>
-
-            </div>
-
-          </div>
-
-        ))}
+          )
+        })}
 
       </div>
-
     </section>
   )
 }
-
 
 export default TVShowRow

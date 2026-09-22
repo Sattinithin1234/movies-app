@@ -1,132 +1,57 @@
 import { useEffect, useState } from "react"
-
 import { getTVShowDetails } from "../services/movieApi"
 
-
 function TVShowDetails(props) {
-
   const show = props.show
 
-  console.log("SELECTED TV SHOW:", show)
-
-
-  // =========================
-  // STATES
-  // =========================
-
-  const [details, setDetails] =
-    useState(show)
-
-  const [loading, setLoading] =
-    useState(true)
-
-
-  // =========================
-  // GET FULL TV SHOW DETAILS
-  // =========================
+  const [details, setDetails] = useState(show)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-
     async function loadDetails() {
-
       try {
-
         setLoading(true)
 
         const showDetails =
           await getTVShowDetails(show.id)
 
-        console.log(
-          "FULL TV SHOW DETAILS:",
-          showDetails
-        )
-
         setDetails({
           ...show,
           ...showDetails
         })
-
       } catch (error) {
-
         console.error(
           "TV Show Details Error:",
           error
         )
 
         setDetails(show)
-
       } finally {
-
         setLoading(false)
-
       }
-
     }
 
     loadDetails()
-
   }, [show])
 
-
-  // =========================
-  // WATCH NOW
-  // =========================
-
   function handleWatchNow() {
-
-    const searchQuery =
-      `${details.title} official trailer`
-
-    const youtubeUrl =
-      `https://www.youtube.com/results?search_query=${encodeURIComponent(
-        searchQuery
-      )}`
-
-    window.open(
-      youtubeUrl,
-      "_blank"
-    )
+    props.onWatchNow(details)
   }
-
-
-  // =========================
-  // MY LIST
-  // =========================
 
   function handleMyList() {
-
     if (props.isInMyList) {
-
-      props.onRemoveFromMyList(
-        details.id
-      )
-
+      props.onRemoveFromMyList(details.id)
     } else {
-
-      props.onAddToMyList(
-        details
-      )
-
+      props.onAddToMyList(details)
     }
-
   }
 
-
-  // =========================
-  // FORMAT DATE
-  // =========================
-
   function formatDate(date) {
-
-    if (!date || date === "N/A") {
-
+    if (!date) {
       return "Not available"
-
     }
 
-    return new Date(
-      date
-    ).toLocaleDateString(
+    return new Date(date).toLocaleDateString(
       "en-US",
       {
         month: "long",
@@ -134,53 +59,62 @@ function TVShowDetails(props) {
         year: "numeric"
       }
     )
-
   }
 
+  const posterUrl =
+    details.poster_path
+      ? `https://image.tmdb.org/t/p/w500${details.poster_path}`
+      : ""
 
   return (
-
     <div className="movie-details">
+
+      {/* BACK BUTTON */}
+
+      <button
+        className="details-back-button"
+        onClick={props.onClose}
+      >
+        ← Back
+      </button>
 
       <div className="details-content">
 
-
-        {/* =========================
-            TV SHOW POSTER
-        ========================= */}
+        {/* POSTER */}
 
         <div className="details-poster">
 
-          <img
-            src={details.image}
-            alt={details.title}
-          />
+          {posterUrl ? (
+            <img
+              src={posterUrl}
+              alt={details.name}
+            />
+          ) : (
+            <div className="no-poster">
+              No Image
+            </div>
+          )}
 
         </div>
 
-
-        {/* =========================
-            TV SHOW INFORMATION
-        ========================= */}
+        {/* DETAILS */}
 
         <div className="details-info">
 
-
-          {/* TITLE */}
-
           <h1>
-            {details.title}
+            {details.name}
           </h1>
-
 
           {/* RATING */}
 
           <p className="details-rating">
 
-            ⭐ {details.rating}
+            ⭐{" "}
+            {details.vote_average
+              ? details.vote_average.toFixed(1)
+              : "N/A"}
 
           </p>
-
 
           {/* FIRST AIR DATE */}
 
@@ -191,41 +125,38 @@ function TVShowDetails(props) {
             {loading
               ? "Loading..."
               : formatDate(
-                  details.firstAirDate
+                  details.first_air_date
                 )}
 
           </p>
 
-
-          {/* SEASONS + EPISODES */}
+          {/* TV STATS */}
 
           {!loading && (
-
             <p className="tv-stats">
 
-              📺 {details.seasons || 0} Seasons
+              📺{" "}
+              {details.number_of_seasons || 0}
+              {" "}Seasons
 
               <span>
                 {" • "}
               </span>
 
-              🎞️ {details.episodes || 0} Episodes
+              🎞️{" "}
+              {details.number_of_episodes || 0}
+              {" "}Episodes
 
             </p>
-
           )}
-
 
           {/* LOADING */}
 
           {loading && (
-
             <p>
               Loading TV show details...
             </p>
-
           )}
-
 
           {/* GENRES */}
 
@@ -233,79 +164,58 @@ function TVShowDetails(props) {
             details.genres &&
             details.genres.length > 0 && (
 
-            <div className="movie-genres">
+              <div className="movie-genres">
 
-              {details.genres.map(
-                (genre) => (
+                {details.genres.map(
+                  (genre) => (
 
-                  <span
-                    className="genre-tag"
-                    key={genre}
-                  >
-                    {genre}
-                  </span>
+                    <span
+                      className="genre-tag"
+                      key={genre.id}
+                    >
+                      {genre.name}
+                    </span>
 
-                )
-              )}
+                  )
+                )}
 
-            </div>
+              </div>
 
-          )}
-
+            )}
 
           {/* DESCRIPTION */}
 
           <p>
-            {details.description}
+            {details.overview ||
+              "No description available."}
           </p>
 
-
-          {/* =========================
-              BUTTONS
-          ========================= */}
+          {/* BUTTONS */}
 
           <div className="details-buttons">
-
-
-            {/* WATCH NOW */}
 
             <button
               className="watch-button"
               onClick={handleWatchNow}
             >
-
               ▶ Watch Now
-
             </button>
-
-
-            {/* MY LIST */}
 
             <button
               className="list-button"
               onClick={handleMyList}
             >
-
               {props.isInMyList
                 ? "✓ Added"
                 : "+ My List"}
-
             </button>
-
-
-            {/* CLOSE */}
 
             <button
               className="close-button"
-              onClick={
-                props.onClose
-              }
+              onClick={props.onClose}
             >
-
               ✕ Close
-
             </button>
-
 
           </div>
 
@@ -314,11 +224,7 @@ function TVShowDetails(props) {
       </div>
 
     </div>
-
   )
-
 }
 
-
 export default TVShowDetails
-

@@ -1,76 +1,56 @@
 function MovieCard(props) {
+  const imageUrl = props.movie.poster_path
+    ? `https://image.tmdb.org/t/p/w500${props.movie.poster_path}`
+    : "https://via.placeholder.com/500x750?text=No+Image"
 
-  console.log(
-    "MOVIE CARD DATA:",
-    props.movie
-  )
+  function handlePlay(event) {
+    event.stopPropagation()
 
+    if (props.onWatchNow) {
+      props.onWatchNow(props.movie)
+    }
+  }
 
   return (
-
     <div
       className="movie-card"
-      onClick={() =>
-        props.onMovieClick(
-          props.movie
-        )
-      }
+      onClick={() => props.onMovieClick(props.movie)}
     >
-
-      {/* MOVIE IMAGE */}
-
       <div className="movie-image-container">
 
         <img
-          src={props.movie.image}
+          src={imageUrl}
           alt={props.movie.title}
         />
-
-
-        {/* HOVER OVERLAY */}
 
         <div className="movie-overlay">
 
           <button
             className="play-button"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
+            onClick={handlePlay}
           >
             ▶
           </button>
 
         </div>
-
       </div>
 
-
-      {/* MOVIE TITLE */}
-
-      <h3>
-        {props.movie.title}
-      </h3>
-
-
-      {/* MOVIE INFORMATION */}
+      <h3>{props.movie.title}</h3>
 
       <div className="movie-info">
 
         <span>
-          ⭐ {props.movie.rating}
+          ⭐{" "}
+          {props.movie.vote_average
+            ? props.movie.vote_average.toFixed(1)
+            : "N/A"}
         </span>
 
-
-        <span>
-          HD
-        </span>
+        <span>HD</span>
 
       </div>
-
     </div>
-
   )
 }
-
 
 export default MovieCard

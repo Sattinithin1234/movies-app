@@ -1,4 +1,9 @@
 import { useEffect, useState } from "react"
+import {
+  Routes,
+  Route,
+  useNavigate
+} from "react-router-dom"
 
 import Navbar from "./components/Navbar"
 import Hero from "./components/Hero"
@@ -6,56 +11,61 @@ import MovieRow from "./components/MovieRow"
 import TVShowRow from "./components/TVShowRow"
 import MovieDetails from "./components/MovieDetails"
 import TVShowDetails from "./components/TVShowDetails"
+import TrailerModal from "./components/TrailerModal"
+
+import Login from "./components/Login/Login"
+import Signup from "./components/Signup/Signup"
+import Account from "./components/Account/Account"
+import ProtectedRoute from "./components/ProtectedRoute/ProtectedRoute"
 
 import {
   getTrendingMovies,
   getPopularMovies,
   getTopRatedMovies,
   getPopularTVShows,
-  searchMulti
+  searchMulti,
+  getMovieVideos,
+  getTVShowVideos
 } from "./services/movieApi"
 
-function App() {
-  // Selected movie for details popup
-  const [selectedMovie, setSelectedMovie] = useState(null)
+import "./App.css"
 
-  // Selected TV show for details popup
-  const [selectedShow, setSelectedShow] = useState(null)
 
-  // Search text
-  const [searchText, setSearchText] = useState("")
+/* =========================================================
+   MOVIES APP
+   ========================================================= */
 
-  // Search results
-  const [searchResults, setSearchResults] = useState([])
+function MoviesApp() {
 
-  // My List
-  const [myList, setMyList] = useState(() => {
-    const savedList = localStorage.getItem("myList")
-
-    return savedList ? JSON.parse(savedList) : []
-  })
-
-  // Movie data
   const [trendingMovies, setTrendingMovies] = useState([])
   const [popularMovies, setPopularMovies] = useState([])
   const [topRatedMovies, setTopRatedMovies] = useState([])
+  const [tvShows, setTvShows] = useState([])
 
-  // TV shows
-  const [tvShows, setTVShows] = useState([])
+  const [searchText, setSearchText] = useState("")
+  const [searchResults, setSearchResults] = useState([])
 
-  // Loading and error
+  const [selectedMovie, setSelectedMovie] = useState(null)
+  const [selectedShow, setSelectedShow] = useState(null)
+
+  const [myList, setMyList] = useState([])
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
-  // Save My List whenever it changes
-  useEffect(() => {
-    localStorage.setItem("myList", JSON.stringify(myList))
-  }, [myList])
+  const [trailerKey, setTrailerKey] = useState("")
 
-  // Load movies and TV shows
+
+  /* =========================================================
+     LOAD MOVIES AND TV SHOWS
+     ========================================================= */
+
   useEffect(() => {
-    async function loadData() {
+
+    async function loadMovies() {
+
       try {
+
         setLoading(true)
         setError("")
 
@@ -71,410 +81,659 @@ function App() {
           getPopularTVShows()
         ])
 
-        setTrendingMovies(
-          trending.map((movie) => ({
-            ...movie,
-            type: "movie"
-          }))
-        )
+        setTrendingMovies(trending || [])
+        setPopularMovies(popular || [])
+        setTopRatedMovies(topRated || [])
+        setTvShows(tv || [])
 
-        setPopularMovies(
-          popular.map((movie) => ({
-            ...movie,
-            type: "movie"
-          }))
-        )
-
-        setTopRatedMovies(
-          topRated.map((movie) => ({
-            ...movie,
-            type: "movie"
-          }))
-        )
-
-        setTVShows(
-          tv.map((show) => ({
-            ...show,
-            type: "tv"
-          }))
-        )
       } catch (error) {
-        console.error("Loading Error:", error)
+
+        console.error(
+          "Movie API Error:",
+          error
+        )
 
         setError(
           "Something went wrong while loading movies."
         )
+
       } finally {
+
         setLoading(false)
+
       }
     }
 
-    loadData()
+    loadMovies()
+
   }, [])
 
-  // Search movies and TV shows
+
+  /* =========================================================
+     LOAD MY LIST
+     ========================================================= */
+
   useEffect(() => {
-    async function performSearch() {
-      if (!searchText.trim()) {
-        setSearchResults([])
-        return
-      }
+
+    const savedList =
+      localStorage.getItem("myList")
+
+    if (savedList) {
 
       try {
-        const results = await searchMulti(searchText)
 
-        setSearchResults(results)
+        setMyList(
+          JSON.parse(savedList)
+        )
+
       } catch (error) {
-        console.error("Search Error:", error)
 
-        setSearchResults([])
+        console.error(
+          "My List Error:",
+          error
+        )
+
+        setMyList([])
+
       }
     }
 
-    performSearch()
-  }, [searchText])
+  }, [])
 
-  // Add movie or TV show to My List
-  function addToMyList(item) {
-    setMyList((currentList) => {
-      const alreadyExists = currentList.some(
-        (movie) =>
-          movie.id === item.id &&
-          movie.type === item.type
-      )
 
-      if (alreadyExists) {
-        return currentList
-      }
+  /* =========================================================
+     SEARCH
+     ========================================================= */
 
-      return [...currentList, item]
-    })
-  }
+  useEffect(() => {
 
-  // Remove movie or TV show from My List
-  function removeFromMyList(id, type) {
-    setMyList((currentList) =>
-      currentList.filter((item) => {
-        if (type) {
-          return !(
-            item.id === id &&
-            item.type === type
+    if (!searchText.trim()) {
+
+      setSearchResults([])
+
+      return
+
+    }
+
+    const timer = setTimeout(
+      async () => {
+
+        try {
+
+          const results =
+            await searchMulti(searchText)
+
+          setSearchResults(
+            results || []
           )
+
+        } catch (error) {
+
+          console.error(
+            "Search Error:",
+            error
+          )
+
+          setSearchResults([])
+
         }
 
-        return item.id !== id
-      })
+      },
+      500
+    )
+
+    return () =>
+      clearTimeout(timer)
+
+  }, [searchText])
+
+
+  /* =========================================================
+     ADD TO MY LIST
+     ========================================================= */
+
+  function addToMyList(item) {
+
+    const alreadyExists =
+      myList.some(
+        (movie) =>
+          movie.id === item.id
+      )
+
+    if (alreadyExists) {
+      return
+    }
+
+    const updatedList = [
+      ...myList,
+      item
+    ]
+
+    setMyList(updatedList)
+
+    localStorage.setItem(
+      "myList",
+      JSON.stringify(updatedList)
     )
   }
 
-  // Check whether item is already in My List
-  function isInMyList(id, type) {
+
+  /* =========================================================
+     REMOVE FROM MY LIST
+     ========================================================= */
+
+  function removeFromMyList(itemId) {
+
+    const updatedList =
+      myList.filter(
+        (item) =>
+          item.id !== itemId
+      )
+
+    setMyList(updatedList)
+
+    localStorage.setItem(
+      "myList",
+      JSON.stringify(updatedList)
+    )
+  }
+
+
+  /* =========================================================
+     CHECK MY LIST
+     ========================================================= */
+
+  function isInMyList(itemId) {
+
     return myList.some(
       (item) =>
-        item.id === id &&
-        item.type === type
+        item.id === itemId
     )
   }
 
-  // Loading screen
+
+  /* =========================================================
+     WATCH MOVIE TRAILER
+     ========================================================= */
+
+  async function handleWatchMovieTrailer(movie) {
+
+    try {
+
+      const videos =
+        await getMovieVideos(movie.id)
+
+      const trailer =
+        videos.find(
+          (video) =>
+            video.site === "YouTube" &&
+            video.type === "Trailer"
+        ) ||
+        videos.find(
+          (video) =>
+            video.site === "YouTube"
+        )
+
+      if (trailer) {
+
+        setTrailerKey(
+          trailer.key
+        )
+
+      } else {
+
+        alert(
+          "Trailer not available."
+        )
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Movie Trailer Error:",
+        error
+      )
+
+      alert(
+        "Unable to load trailer."
+      )
+
+    }
+  }
+
+
+  /* =========================================================
+     WATCH TV SHOW TRAILER
+     ========================================================= */
+
+  async function handleWatchTVTrailer(show) {
+
+    try {
+
+      const videos =
+        await getTVShowVideos(show.id)
+
+      const trailer =
+        videos.find(
+          (video) =>
+            video.site === "YouTube" &&
+            video.type === "Trailer"
+        ) ||
+        videos.find(
+          (video) =>
+            video.site === "YouTube"
+        )
+
+      if (trailer) {
+
+        setTrailerKey(
+          trailer.key
+        )
+
+      } else {
+
+        alert(
+          "Trailer not available."
+        )
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        "TV Trailer Error:",
+        error
+      )
+
+      alert(
+        "Unable to load trailer."
+      )
+
+    }
+  }
+
+
+  /* =========================================================
+     CLOSE TRAILER
+     ========================================================= */
+
+  function closeTrailer() {
+
+    setTrailerKey("")
+
+  }
+
+
+  /* =========================================================
+     LOADING
+     ========================================================= */
+
   if (loading) {
-    return (
-      <div className="app">
-        <Navbar
-          searchText={searchText}
-          onSearch={setSearchText}
-        />
 
-        <div className="loading-container">
-          <h2>Loading Movies...</h2>
-        </div>
+    return (
+      <div className="loading-container">
+
+        <h2>
+          Loading Movies...
+        </h2>
+
       </div>
     )
+
   }
 
-  // Error screen
+
+  /* =========================================================
+     ERROR
+     ========================================================= */
+
   if (error) {
+
     return (
-      <div className="app">
-        <Navbar
-          searchText={searchText}
-          onSearch={setSearchText}
-        />
+      <div className="error-container">
 
-        <div className="error-container">
-          <h2>Something went wrong</h2>
+        <h2>
+          {error}
+        </h2>
 
-          <p>{error}</p>
+        <button
+          onClick={() =>
+            window.location.reload()
+          }
+        >
+          Try Again
+        </button>
 
-          <button
-            onClick={() => window.location.reload()}
-          >
-            Try Again
-          </button>
-        </div>
       </div>
     )
+
   }
+
+
+  /* =========================================================
+     MAIN UI
+     ========================================================= */
 
   return (
+
     <div className="app">
 
-      {/* Navbar */}
+      {/* =====================================================
+          NAVBAR
+          ===================================================== */}
+
       <Navbar
         searchText={searchText}
-        onSearch={setSearchText}
+        setSearchText={setSearchText}
       />
 
-      {/* Search Results */}
+
+      {/* =====================================================
+          SEARCH RESULTS
+          ===================================================== */}
+
       {searchText.trim() ? (
-        <section className="search-results">
+
+        <section className="search-results-section">
 
           <h2>
-            Search Results for "{searchText}"
+            Search Results
           </h2>
 
-          {searchResults.length === 0 ? (
-            <div className="empty-list">
 
-              <div className="empty-list-icon">
-                🔍
-              </div>
+          {searchResults.filter(
+            (item) =>
+              item.media_type === "movie" ||
+              item.media_type === "tv"
+          ).length === 0 ? (
 
-              <h3>No results found</h3>
+            <p className="no-results">
+              No movies or TV shows found.
+            </p>
 
-              <p>
-                Try searching for another movie
-                or TV show.
-              </p>
-
-            </div>
           ) : (
-            <div className="movie-grid">
 
-              {searchResults.map((item) => (
-                <div
-                  className="movie-card"
-                  key={`${item.type}-${item.id}`}
-                  onClick={() => {
-                    if (item.type === "tv") {
-                      setSelectedShow(item)
-                    } else {
-                      setSelectedMovie(item)
-                    }
-                  }}
-                >
+            <div className="search-results-grid">
 
-                  <div className="movie-image-container">
-
-                    <img
-                      src={item.image}
-                      alt={item.title}
-                    />
-
-                    <div className="movie-overlay">
-
-                      <button
-                        className="play-button"
-                        onClick={(event) =>
-                          event.stopPropagation()
-                        }
-                      >
-                        ▶
-                      </button>
-
-                    </div>
-
-                  </div>
-
-                  <h3>{item.title}</h3>
-
-                  <div className="movie-info">
-
-                    <span>
-                      ⭐ {item.rating}
-                    </span>
-
-                    <span>
-                      {item.type === "tv"
-                        ? "TV"
-                        : "HD"}
-                    </span>
-
-                  </div>
-
-                </div>
-              ))}
-
-            </div>
-          )}
-
-        </section>
-      ) : (
-
-        <>
-          {/* Home */}
-          <section id="home">
-
-            <Hero
-              movie={trendingMovies[0]}
-
-              isInMyList={
-                isInMyList(
-                  trendingMovies[0]?.id,
-                  "movie"
+              {searchResults
+                .filter(
+                  (item) =>
+                    item.media_type === "movie" ||
+                    item.media_type === "tv"
                 )
-              }
-
-              onAddToMyList={(movie) =>
-                addToMyList({
-                  ...movie,
-                  type: "movie"
-                })
-              }
-
-              onRemoveFromMyList={(id) =>
-                removeFromMyList(
-                  id,
-                  "movie"
-                )
-              }
-            />
-
-          </section>
-
-          {/* Movies */}
-          <section id="movies">
-
-            <MovieRow
-              title="Trending Movies"
-              movies={trendingMovies}
-              onMovieClick={setSelectedMovie}
-            />
-
-            <MovieRow
-              title="Popular Movies"
-              movies={popularMovies}
-              onMovieClick={setSelectedMovie}
-            />
-
-            <MovieRow
-              title="Top Rated Movies"
-              movies={topRatedMovies}
-              onMovieClick={setSelectedMovie}
-            />
-
-          </section>
-
-          {/* TV Shows */}
-          <section id="tv-shows">
-
-            <TVShowRow
-              title="Popular TV Shows"
-              shows={tvShows}
-              onShowClick={setSelectedShow}
-            />
-
-          </section>
-
-          {/* My List */}
-          <section
-            id="my-list"
-            className="movie-section"
-          >
-
-            <h2>My List</h2>
-
-            {myList.length === 0 ? (
-
-              <div className="empty-list">
-
-                <div className="empty-list-icon">
-                  🎬
-                </div>
-
-                <h3>
-                  Your list is empty
-                </h3>
-
-                <p>
-                  Add movies and TV shows
-                  to watch them later.
-                </p>
-
-              </div>
-
-            ) : (
-
-              <div className="movie-grid">
-
-                {myList.map((item) => (
+                .map((item) => (
 
                   <div
-                    className="movie-card"
-                    key={`${item.type}-${item.id}`}
+                    className="search-card"
+                    key={`${item.media_type}-${item.id}`}
                     onClick={() => {
 
-                      if (item.type === "tv") {
-                        setSelectedShow(item)
-                      } else {
+                      if (
+                        item.media_type === "movie"
+                      ) {
+
                         setSelectedMovie(item)
+
+                      } else {
+
+                        setSelectedShow(item)
+
                       }
 
                     }}
                   >
 
-                    <div className="movie-image-container">
+                    {item.poster_path ? (
 
                       <img
-                        src={item.image}
-                        alt={item.title}
+                        src={`https://image.tmdb.org/t/p/w500${item.poster_path}`}
+                        alt={
+                          item.title ||
+                          item.name
+                        }
                       />
 
-                      <div className="movie-overlay">
+                    ) : (
+
+                      <div className="no-poster">
+                        No Image
+                      </div>
+
+                    )}
+
+                    <h3>
+                      {item.title ||
+                        item.name}
+                    </h3>
+
+                    <p>
+                      {item.media_type === "movie"
+                        ? "Movie"
+                        : "TV Show"}
+                    </p>
+
+                  </div>
+
+                ))}
+
+            </div>
+
+          )}
+
+        </section>
+
+      ) : (
+
+        <>
+
+          {/* =================================================
+              HERO
+              ================================================= */}
+
+          {trendingMovies.length > 0 && (
+
+            <Hero
+              movie={trendingMovies[0]}
+              onWatchNow={
+                handleWatchMovieTrailer
+              }
+              onAddToMyList={
+                addToMyList
+              }
+              onRemoveFromMyList={
+                removeFromMyList
+              }
+              isInMyList={
+                isInMyList(
+                  trendingMovies[0].id
+                )
+              }
+            />
+
+          )}
+
+
+          {/* =================================================
+              TRENDING MOVIES
+              ================================================= */}
+
+          <MovieRow
+            title="Trending Movies"
+            movies={trendingMovies}
+            onMovieClick={
+              setSelectedMovie
+            }
+          />
+
+
+          {/* =================================================
+              POPULAR MOVIES
+              ================================================= */}
+
+          <MovieRow
+            title="Popular Movies"
+            movies={popularMovies}
+            onMovieClick={
+              setSelectedMovie
+            }
+          />
+
+
+          {/* =================================================
+              TOP RATED MOVIES
+              ================================================= */}
+
+          <MovieRow
+            title="Top Rated Movies"
+            movies={topRatedMovies}
+            onMovieClick={
+              setSelectedMovie
+            }
+          />
+
+
+          {/* =================================================
+              TV SHOWS
+              ================================================= */}
+
+          <TVShowRow
+            title="Popular TV Shows"
+            shows={tvShows}
+            onShowClick={
+              setSelectedShow
+            }
+          />
+
+
+          {/* =================================================
+              MY LIST
+              ================================================= */}
+
+          {myList.length > 0 && (
+
+            <section
+              id="my-list-section"
+              className="movie-section"
+            >
+
+              <h2>
+                My List
+              </h2>
+
+              <div className="my-list-grid">
+
+                {myList.map((item) => {
+
+                  const isTV =
+                    item.name &&
+                    !item.title
+
+                  const imageUrl =
+                    item.poster_path
+                      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+                      : ""
+
+                  return (
+
+                    <div
+                      className="my-list-card"
+                      key={`${isTV ? "tv" : "movie"}-${item.id}`}
+                      onClick={() => {
+
+                        if (isTV) {
+
+                          setSelectedShow(item)
+
+                        } else {
+
+                          setSelectedMovie(item)
+
+                        }
+
+                      }}
+                    >
+
+                      {imageUrl ? (
+
+                        <img
+                          src={imageUrl}
+                          alt={
+                            item.title ||
+                            item.name
+                          }
+                        />
+
+                      ) : (
+
+                        <div className="no-poster">
+                          No Image
+                        </div>
+
+                      )}
+
+                      <div className="my-list-info">
+
+                        <h3>
+                          {item.title ||
+                            item.name}
+                        </h3>
+
+                        <div className="my-list-meta">
+
+                          <span>
+                            ⭐{" "}
+                            {item.vote_average
+                              ? item.vote_average.toFixed(1)
+                              : "N/A"}
+                          </span>
+
+                          <span>
+                            {isTV
+                              ? "TV"
+                              : "Movie"}
+                          </span>
+
+                        </div>
 
                         <button
-                          className="play-button"
-                          onClick={(event) =>
+                          className="remove-list-button"
+                          onClick={(event) => {
+
                             event.stopPropagation()
-                          }
+
+                            removeFromMyList(
+                              item.id
+                            )
+
+                          }}
                         >
-                          ▶
+                          🗑 Remove
                         </button>
 
                       </div>
 
                     </div>
 
-                    <h3>{item.title}</h3>
+                  )
 
-                    <div className="movie-info">
-
-                      <span>
-                        ⭐ {item.rating}
-                      </span>
-
-                      <span>
-                        {item.type === "tv"
-                          ? "TV"
-                          : "HD"}
-                      </span>
-
-                    </div>
-
-                  </div>
-
-                ))}
+                })}
 
               </div>
 
-            )}
+            </section>
 
-          </section>
+          )}
 
         </>
+
       )}
 
-      {/* Movie Details Popup */}
+
+      {/* =====================================================
+          MOVIE DETAILS
+          ===================================================== */}
+
       {selectedMovie && (
 
         <MovieDetails
@@ -484,31 +743,32 @@ function App() {
             setSelectedMovie(null)
           }
 
-          onAddToMyList={(movie) =>
-            addToMyList({
-              ...movie,
-              type: "movie"
-            })
+          onWatchNow={
+            handleWatchMovieTrailer
           }
 
-          onRemoveFromMyList={(id) =>
-            removeFromMyList(
-              id,
-              "movie"
-            )
+          onAddToMyList={
+            addToMyList
+          }
+
+          onRemoveFromMyList={
+            removeFromMyList
           }
 
           isInMyList={
             isInMyList(
-              selectedMovie.id,
-              "movie"
+              selectedMovie.id
             )
           }
         />
 
       )}
 
-      {/* TV Show Details Popup */}
+
+      {/* =====================================================
+          TV SHOW DETAILS
+          ===================================================== */}
+
       {selectedShow && (
 
         <TVShowDetails
@@ -518,32 +778,107 @@ function App() {
             setSelectedShow(null)
           }
 
-          onAddToMyList={(show) =>
-            addToMyList({
-              ...show,
-              type: "tv"
-            })
+          onWatchNow={
+            handleWatchTVTrailer
           }
 
-          onRemoveFromMyList={(id) =>
-            removeFromMyList(
-              id,
-              "tv"
-            )
+          onAddToMyList={
+            addToMyList
+          }
+
+          onRemoveFromMyList={
+            removeFromMyList
           }
 
           isInMyList={
             isInMyList(
-              selectedShow.id,
-              "tv"
+              selectedShow.id
             )
           }
         />
 
       )}
 
+
+      {/* =====================================================
+          TRAILER MODAL
+          ===================================================== */}
+
+      <TrailerModal
+        videoKey={trailerKey}
+        onClose={closeTrailer}
+      />
+
     </div>
   )
 }
+
+
+/* =========================================================
+   APP ROUTES
+   ========================================================= */
+
+function App() {
+
+  return (
+
+    <Routes>
+
+      {/* LOGIN */}
+
+      <Route
+        path="/login"
+        element={<Login />}
+      />
+
+
+      {/* SIGNUP */}
+
+      <Route
+        path="/signup"
+        element={<Signup />}
+      />
+
+
+      {/* ACCOUNT */}
+
+      <Route
+        path="/account"
+        element={
+          <ProtectedRoute>
+            <Account />
+          </ProtectedRoute>
+        }
+      />
+
+
+      {/* HOME */}
+
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <MoviesApp />
+          </ProtectedRoute>
+        }
+      />
+
+
+      {/* UNKNOWN URL */}
+
+      <Route
+        path="*"
+        element={
+          <ProtectedRoute>
+            <MoviesApp />
+          </ProtectedRoute>
+        }
+      />
+
+    </Routes>
+
+  )
+}
+
 
 export default App

@@ -1,200 +1,115 @@
 function Hero(props) {
-
   const movie = props.movie
-
-
-  /* =========================
-     NO MOVIE
-     ========================= */
 
   if (!movie) {
     return null
   }
 
+  const backdropUrl = movie.backdrop_path
+    ? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
+    : movie.poster_path
+      ? `https://image.tmdb.org/t/p/original${movie.poster_path}`
+      : ""
 
-  /* =========================
-     WATCH NOW
-     ========================= */
+  const year = movie.release_date
+    ? new Date(movie.release_date).getFullYear()
+    : "N/A"
 
   function handleWatchNow() {
-
-    const searchQuery =
-      `${movie.title} official trailer`
-
-    const youtubeUrl =
-      `https://www.youtube.com/results?search_query=${encodeURIComponent(
-        searchQuery
-      )}`
-
-    window.open(
-      youtubeUrl,
-      "_blank"
-    )
-
+    props.onWatchNow(movie)
   }
-
-
-  /* =========================
-     MY LIST
-     ========================= */
 
   function handleMyList() {
-
     if (props.isInMyList) {
-
-      props.onRemoveFromMyList(
-        movie.id
-      )
-
+      props.onRemoveFromMyList(movie.id)
     } else {
-
-      props.onAddToMyList(
-        movie
-      )
-
+      props.onAddToMyList(movie)
     }
-
   }
 
-
-  /* =========================
-     RUNTIME
-     ========================= */
-
   function formatRuntime(minutes) {
-
     if (!minutes) {
       return null
     }
 
-
-    const hours =
-      Math.floor(
-        minutes / 60
-      )
-
-    const remainingMinutes =
-      minutes % 60
-
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
 
     if (hours === 0) {
-
       return `${remainingMinutes}m`
-
     }
-
 
     if (remainingMinutes === 0) {
-
       return `${hours}h`
-
     }
 
-
     return `${hours}h ${remainingMinutes}m`
-
   }
 
-
   return (
-
     <section
       className="hero"
       style={{
-        backgroundImage:
-          `url(${movie.backdrop || movie.image})`
+        backgroundImage: `
+          linear-gradient(
+            to right,
+            rgba(0, 0, 0, 0.95) 0%,
+            rgba(0, 0, 0, 0.75) 45%,
+            rgba(0, 0, 0, 0.25) 100%
+          ),
+          url(${backdropUrl})
+        `
       }}
     >
-
-      {/* =========================
-          HERO CONTENT
-          ========================= */}
-
       <div className="hero-content">
 
+        <h1>{movie.title}</h1>
 
-        {/* TITLE */}
+        <div className="hero-meta">
+          <span>
+            ⭐{" "}
+            {movie.vote_average
+              ? movie.vote_average.toFixed(1)
+              : "N/A"}
+          </span>
 
-        <h1>
-          {movie.title}
-        </h1>
-
-
-        {/* MOVIE INFORMATION */}
-
-        <p>
-
-          ⭐ {movie.rating}
-
-          {" • "}
-
-          {movie.year}
-
+          <span>{year}</span>
 
           {movie.runtime && (
-
-            <>
-              {" • "}
-
-              {formatRuntime(
-                movie.runtime
-              )}
-            </>
-
+            <span>
+              {formatRuntime(movie.runtime)}
+            </span>
           )}
-
-        </p>
-
-
-        {/* DESCRIPTION */}
+        </div>
 
         <p>
-          {movie.description}
+          {movie.overview ||
+            "No description available."}
         </p>
-
-
-        {/* BUTTONS */}
 
         <div className="hero-buttons">
 
-
-          {/* WATCH NOW */}
-
           <button
-            className="watch-button"
-            onClick={
-              handleWatchNow
-            }
+            className="hero-watch-button"
+            onClick={handleWatchNow}
           >
             ▶ Watch Now
           </button>
 
-
-          {/* MY LIST */}
-
           <button
-            className="list-button"
-            onClick={
-              handleMyList
-            }
+            className="hero-list-button"
+            onClick={handleMyList}
           >
-
             {props.isInMyList
-              ? "✓ Added"
+              ? "✓ Added to My List"
               : "+ My List"}
-
           </button>
-
 
         </div>
 
       </div>
-
     </section>
-
   )
-
 }
-
 
 export default Hero
